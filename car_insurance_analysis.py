@@ -123,21 +123,54 @@ def audit_data_quality(df: pd.DataFrame) -> dict:
     }
 
 
+def build_preprocessor() -> ColumnTransformer:
+    """
+    Constructs leakage-free ColumnTransformer pipeline with:
+      - Median imputation and standard scaling for numerical features
+      - Ordinal encoding with standard scaling for naturally ordered risk features
+      - One-hot encoding for categorical variables (postal codes, vehicle year/type)
+    """
+    num_features = ["age", "credit_score", "annual_mileage", "speeding_violations", "duis", "past_accidents"]
+    ord_features = ["driving_experience", "education", "income"]
+    bin_features = ["gender", "vehicle_ownership", "married", "children"]
+    cat_features = ["vehicle_year", "vehicle_type", "postal_code"]
+
+    ordinal_categories = [
+        ["0-9y", "10-19y", "20-29y", "30y+"],                      # driving_experience
+        ["none", "high school", "university"],                     # education
+        ["poverty", "working class", "middle class", "upper class"] # income
+    ]
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("num", Pipeline([
+                ("imputer", SimpleImputer(strategy="median")),
+                ("scaler", StandardScaler()),
+            ]), num_features),
+            ("ord", Pipeline([
+                ("encoder", OrdinalEncoder(categories=ordinal_categories, handle_unknown="use_encoded_value", unknown_value=-1)),
+                ("scaler", StandardScaler()),
+            ]), ord_features),
+            ("bin", "passthrough", bin_features),
+            ("cat", OneHotEncoder(drop="first", sparse_output=False, handle_unknown="ignore"), cat_features),
+        ]
+    )
+    return preprocessor
+
+
 def main():
     print("=" * 80)
-    print("INSURANCE CLAIM RISK PREDICTION — DATA AUDIT & BASELINES")
+    print("INSURANCE CLAIM RISK PREDICTION — PREPROCESSING PIPELINE")
     print("=" * 80)
 
     df = load_dataset()
-    print(f"Dataset successfully loaded: {df.shape[0]:,} records, {df.shape[1]} features.")
-
     best_feat, best_ll, best_acc, _ = audit_single_features(df)
-    print(f"\n[Baseline] Strongest Univariate Signal: '{best_feat}' (Log-loss: {best_ll:.4f}, Accuracy: {best_acc:.2%})")
-
     dq = audit_data_quality(df)
-    print("\n[Statistical Audit] Missingness Independence Tests (Chi-Square vs Claims):")
-    print(f"  - credit_score missingness p-value: {dq['cs_p_val']:.4f} (MCAR / MAR)")
-    print(f"  - annual_mileage missingness p-value: {dq['am_p_val']:.4f} (MCAR / MAR)")
+
+    preprocessor = build_preprocessor()
+    X = df.drop(columns=["id", "outcome"])
+    X_trans = preprocessor.fit_transform(X)
+    print(f"Preprocessed feature matrix shape: {X_trans.shape}")
 
 
 if __name__ == "__main__":

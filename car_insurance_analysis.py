@@ -158,19 +158,84 @@ def build_preprocessor() -> ColumnTransformer:
     return preprocessor
 
 
+def benchmark_models_cv(X: pd.DataFrame, y: pd.Series, preprocessor: ColumnTransformer) -> tuple[pd.DataFrame, dict]:
+    """
+    Executes Stratified 5-Fold Cross-Validation across candidate models with balanced class weights.
+    Reports PR-AUC, Claim Recall, Precision, F1, and Accuracy.
+    """
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    n_neg = (y == 0).sum()
+    n_pos = (y == 1).sum()
+    scale_pos_weight = float(n_neg / n_pos)
+
+    candidate_models = {
+        "Logistic Regression (Balanced)": LogisticRegression(
+            class_weight="balanced",
+            max_iter=1000,
+            random_state=42
+        ),
+        "Random Forest (Balanced)": RandomForestClassifier(
+            n_estimators=200,
+            class_weight="balanced",
+            random_state=42,
+            n_jobs=-1
+        ),
+        "XGBoost (Weighted)": XGBClassifier(
+            scale_pos_weight=scale_pos_weight,
+            eval_metric="logloss",
+            random_state=42,
+            n_jobs=-1
+        )
+    }
+
+    cv_metrics = {m_name: {"acc": [], "prec": [], "rec": [], "f1": [], "pr_auc": []} for m_name in candidate_models}
+
+    for fold, (train_idx, val_idx) in enumerate(skf.split(X, y), 1):
+        X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
+        y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+
+        X_train_trans = preprocessor.fit_transform(X_train)
+        X_val_trans = preprocessor.transform(X_val)
+
+        for m_name, model in candidate_models.items():
+            model.fit(X_train_trans, y_train)
+            y_pred = model.predict(X_val_trans)
+            y_prob = model.predict_proba(X_val_trans)[:, 1]
+
+            cv_metrics[m_name]["acc"].append(accuracy_score(y_val, y_pred))
+            cv_metrics[m_name]["prec"].append(precision_score(y_val, y_pred, zero_division=0))
+            cv_metrics[m_name]["rec"].append(recall_score(y_val, y_pred))
+            cv_metrics[m_name]["f1"].append(f1_score(y_val, y_pred))
+            cv_metrics[m_name]["pr_auc"].append(average_precision_score(y_val, y_prob))
+
+    summary_rows = []
+    for m_name in candidate_models:
+        summary_rows.append({
+            "Model": m_name,
+            "Accuracy": f"{np.mean(cv_metrics[m_name]['acc']):.4f} ± {np.std(cv_metrics[m_name]['acc']):.4f}",
+            "Precision": f"{np.mean(cv_metrics[m_name]['prec']):.4f} ± {np.std(cv_metrics[m_name]['prec']):.4f}",
+            "Recall": f"{np.mean(cv_metrics[m_name]['rec']):.4f} ± {np.std(cv_metrics[m_name]['rec']):.4f}",
+            "F1-Score": f"{np.mean(cv_metrics[m_name]['f1']):.4f} ± {np.std(cv_metrics[m_name]['f1']):.4f}",
+            "PR-AUC": f"{np.mean(cv_metrics[m_name]['pr_auc']):.4f} ± {np.std(cv_metrics[m_name]['pr_auc']):.4f}"
+        })
+
+    cv_df = pd.DataFrame(summary_rows)
+    return cv_df, cv_metrics
+
+
 def main():
     print("=" * 80)
-    print("INSURANCE CLAIM RISK PREDICTION — PREPROCESSING PIPELINE")
+    print("INSURANCE CLAIM RISK PREDICTION — 5-FOLD CV BENCHMARK")
     print("=" * 80)
 
     df = load_dataset()
-    best_feat, best_ll, best_acc, _ = audit_single_features(df)
-    dq = audit_data_quality(df)
-
-    preprocessor = build_preprocessor()
     X = df.drop(columns=["id", "outcome"])
-    X_trans = preprocessor.fit_transform(X)
-    print(f"Preprocessed feature matrix shape: {X_trans.shape}")
+    y = df["outcome"].astype(int)
+    preprocessor = build_preprocessor()
+
+    print("\n[Cross-Validation] Benchmarking Candidate Classifiers (5-Fold Stratified):")
+    cv_df, _ = benchmark_models_cv(X, y, preprocessor)
+    print(cv_df.to_string(index=False))
 
 
 if __name__ == "__main__":

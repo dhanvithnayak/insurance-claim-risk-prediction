@@ -223,9 +223,34 @@ def benchmark_models_cv(X: pd.DataFrame, y: pd.Series, preprocessor: ColumnTrans
     return cv_df, cv_metrics
 
 
+def analyze_shap_interpretability(X: pd.DataFrame, y: pd.Series, preprocessor: ColumnTransformer) -> pd.DataFrame:
+    """
+    Fits optimal balanced Logistic Regression on full dataset and calculates SHAP values
+    to extract feature importance and directional attribution.
+    """
+    preprocessor.fit(X)
+    X_trans = preprocessor.transform(X)
+    feature_names = preprocessor.get_feature_names_out()
+
+    model = LogisticRegression(class_weight="balanced", max_iter=1000, random_state=42)
+    model.fit(X_trans, y)
+
+    explainer = shap.LinearExplainer(model, X_trans)
+    shap_vals = explainer(X_trans)
+    mean_abs_shap = np.abs(shap_vals.values).mean(axis=0)
+
+    shap_df = pd.DataFrame({
+        "Feature": feature_names,
+        "Mean_|SHAP|": mean_abs_shap,
+        "Coefficient": model.coef_[0]
+    }).sort_values("Mean_|SHAP|", ascending=False).reset_index(drop=True)
+
+    return shap_df
+
+
 def main():
     print("=" * 80)
-    print("INSURANCE CLAIM RISK PREDICTION — 5-FOLD CV BENCHMARK")
+    print("INSURANCE CLAIM RISK PREDICTION — SHAP INTERPRETABILITY")
     print("=" * 80)
 
     df = load_dataset()
@@ -233,9 +258,12 @@ def main():
     y = df["outcome"].astype(int)
     preprocessor = build_preprocessor()
 
-    print("\n[Cross-Validation] Benchmarking Candidate Classifiers (5-Fold Stratified):")
     cv_df, _ = benchmark_models_cv(X, y, preprocessor)
     print(cv_df.to_string(index=False))
+
+    print("\n[Interpretability] SHAP Top Risk Drivers:")
+    shap_df = analyze_shap_interpretability(X, y, preprocessor)
+    print(shap_df.head(8).to_string(index=False))
 
 
 if __name__ == "__main__":

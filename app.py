@@ -107,14 +107,13 @@ class PredictionResponse(BaseModel):
     missing_fields_imputed: list[str]
 
 
-@app.get("/")
-def read_root():
-    """Root endpoint providing microservice metadata and link to documentation."""
-    return {
-        "service": "insurance-claim-risk-prediction",
-        "documentation": "/docs",
-        "health": "/health"
-    }
+@app.get("/", response_class=HTMLResponse)
+def serve_dashboard():
+    """Serve the embedded interactive web UI."""
+    if os.path.exists(TEMPLATE_PATH):
+        with open(TEMPLATE_PATH, "r", encoding="utf-8") as f:
+            return f.read()
+    return HTMLResponse("<h2>Web dashboard template not found. Visit <a href='/docs'>/docs</a> for API.</h2>", status_code=200)
 
 
 @app.get("/health")

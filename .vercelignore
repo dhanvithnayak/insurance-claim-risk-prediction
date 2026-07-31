@@ -1,0 +1,11 @@
+data/
+tests/
+car_insurance_analysis.py
+requirements-dev.txt
+.pytest_cache/
+.ruff_cache/
+.venv/
+Dockerfile
+docker-compose.yml
+.github/
+pytest.ini

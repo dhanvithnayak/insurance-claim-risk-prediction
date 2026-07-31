@@ -137,6 +137,14 @@ The application will be live at `http://localhost:8000/`.
    uvicorn app:app --host 0.0.0.0 --port 8000 --reload
    ```
 
+#### Option C: Serverless Cloud Deployment (Vercel)
+
+Deploy instantly with zero configuration and no credit card required:
+1. Log in to [Vercel](https://vercel.com) using your GitHub account.
+2. Click **Add New...** -> **Project**, and select `insurance-claim-risk-prediction`.
+3. Click **Deploy**. Vercel will automatically detect `vercel.json` and `api/index.py`.
+4. Your interactive web dashboard and FastAPI REST endpoints will be live at `https://insurance-claim-risk-prediction.vercel.app`.
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- USAGE EXAMPLES -->
@@ -274,13 +282,17 @@ insurance-claim-risk-prediction/
 ├── .dockerignore               # Container build exclusion patterns
 ├── .gitignore                  # Git tracking rules (caches, virtualenvs, bytecode)
 ├── app.py                      # Production FastAPI inference microservice
+├── api/                        # Vercel serverless deployment entrypoint & requirements
+│   ├── index.py
+│   └── requirements.txt
 ├── car_insurance_analysis.py   # Statistical audit, cross-validation & SHAP pipeline
 ├── Dockerfile                  # Hardened, non-privileged Python 3.12 container
 ├── docker-compose.yml          # Container orchestration configuration
 ├── LICENSE                     # MIT License
 ├── model_pipeline.joblib       # Serialized Scikit-Learn production artifact
 ├── pytest.ini                  # Pytest configuration settings
-└── requirements.txt            # Pinned dependency specifications
+├── requirements.txt            # Pinned dependency specifications
+└── vercel.json                 # Vercel serverless function routing configuration
 ```
 
 <p align="right">(<a href="#top">back to top</a>)</p>

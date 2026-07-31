@@ -119,6 +119,9 @@ def serve_dashboard():
 @app.get("/health")
 def health_check():
     """Liveness probe for Docker container health checks and Kubernetes/cloud orchestrators."""
+    global pipeline
+    if pipeline is None and os.path.exists(MODEL_PATH):
+        pipeline = joblib.load(MODEL_PATH)
     return {
         "status": "healthy",
         "service": "insurance-claim-risk-prediction",

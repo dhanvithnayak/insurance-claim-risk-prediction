@@ -27,6 +27,12 @@ htmlcov/
 scratch/
 *.log
 
+# Deployment configs
+vercel.json
+.vercelignore
+api/
+requirements-dev.txt
+
 # IDE & OS
 .vscode/
 .idea/

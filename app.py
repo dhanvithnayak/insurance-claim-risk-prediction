@@ -210,9 +210,9 @@ def predict_claim(payload: CustomerFeatures):
         prob = float(pipeline.predict_proba(input_df)[0, 1])
         pred = int(pipeline.predict(input_df)[0])
 
-        if prob >= 0.70:
+        if prob >= 0.50:
             risk_tier = "High"
-        elif prob >= 0.40:
+        elif prob >= 0.30:
             risk_tier = "Moderate"
         else:
             risk_tier = "Low"

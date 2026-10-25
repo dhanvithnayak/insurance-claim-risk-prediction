@@ -22,8 +22,37 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "model_pipeline.joblib")
-TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "templates", "index.html")
+
+def get_model_path() -> str:
+    """Resolve model pipeline path across local, Docker, and Vercel environments."""
+    candidates = [
+        os.path.join(os.path.dirname(__file__), "model_pipeline.joblib"),
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "model_pipeline.joblib"),
+        os.path.join(os.getcwd(), "model_pipeline.joblib"),
+        "/var/task/model_pipeline.joblib",
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    return candidates[0]
+
+
+def get_template_path() -> str:
+    """Resolve dashboard template path across local, Docker, and Vercel environments."""
+    candidates = [
+        os.path.join(os.path.dirname(__file__), "templates", "index.html"),
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates", "index.html"),
+        os.path.join(os.getcwd(), "templates", "index.html"),
+        "/var/task/templates/index.html",
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    return candidates[0]
+
+
+MODEL_PATH = get_model_path()
+TEMPLATE_PATH = get_template_path()
 
 pipeline = None
 
@@ -32,12 +61,9 @@ pipeline = None
 async def lifespan(app: FastAPI):
     """Load serialized preprocessing and model pipeline on service startup."""
     global pipeline
-    if not os.path.exists(MODEL_PATH):
-        raise RuntimeError(
-            f"Model pipeline not found at {MODEL_PATH}. "
-            "Run 'python car_insurance_analysis.py' first to train and serialize the pipeline."
-        )
-    pipeline = joblib.load(MODEL_PATH)
+    model_path = get_model_path()
+    if os.path.exists(model_path):
+        pipeline = joblib.load(model_path)
     yield
 
 
@@ -108,20 +134,27 @@ class PredictionResponse(BaseModel):
 
 
 @app.get("/", response_class=HTMLResponse)
+@app.get("/api", response_class=HTMLResponse)
+@app.get("/api/", response_class=HTMLResponse)
+@app.get("/api/index.py", response_class=HTMLResponse)
 def serve_dashboard():
     """Serve the embedded interactive web UI."""
-    if os.path.exists(TEMPLATE_PATH):
-        with open(TEMPLATE_PATH, "r", encoding="utf-8") as f:
+    template_path = get_template_path()
+    if os.path.exists(template_path):
+        with open(template_path, "r", encoding="utf-8") as f:
             return f.read()
     return HTMLResponse("<h2>Web dashboard template not found. Visit <a href='/docs'>/docs</a> for API.</h2>", status_code=200)
 
 
 @app.get("/health")
+@app.get("/api/health")
 def health_check():
     """Liveness probe for Docker container health checks and Kubernetes/cloud orchestrators."""
     global pipeline
-    if pipeline is None and os.path.exists(MODEL_PATH):
-        pipeline = joblib.load(MODEL_PATH)
+    if pipeline is None:
+        model_path = get_model_path()
+        if os.path.exists(model_path):
+            pipeline = joblib.load(model_path)
     return {
         "status": "healthy",
         "service": "insurance-claim-risk-prediction",
@@ -130,6 +163,7 @@ def health_check():
 
 
 @app.post("/predict", response_model=PredictionResponse)
+@app.post("/api/predict", response_model=PredictionResponse)
 def predict_claim(payload: CustomerFeatures):
     """
     Accepts customer profile JSON, applies pipeline preprocessing,
@@ -137,8 +171,9 @@ def predict_claim(payload: CustomerFeatures):
     """
     global pipeline
     if pipeline is None:
-        if os.path.exists(MODEL_PATH):
-            pipeline = joblib.load(MODEL_PATH)
+        model_path = get_model_path()
+        if os.path.exists(model_path):
+            pipeline = joblib.load(model_path)
         else:
             raise HTTPException(
                 status_code=500,

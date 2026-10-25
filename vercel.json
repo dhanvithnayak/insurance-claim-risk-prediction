@@ -1,13 +1,18 @@
 {
-  "functions": {
-    "api/index.py": {
-      "includeFiles": "model_pipeline.joblib,templates/**"
-    }
-  },
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/api/index.py"
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": ["model_pipeline.joblib", "templates/**", "app.py"]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/index.py"
     }
   ]
 }

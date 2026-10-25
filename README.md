@@ -115,11 +115,15 @@ The application will be live at `http://localhost:8000/`.
    source .venv/bin/activate
    ```
 
-3. Install pinned dependencies:
+3. Install dependencies:
    ```bash
    pip install --upgrade pip
+   # Production runtime dependencies (API, dashboard, and testing)
    pip install -r requirements.txt
    pip install pytest ruff
+
+   # (Optional) Full ML modeling dependencies to re-train the pipeline:
+   pip install -r requirements-dev.txt
    ```
 
 4. Run the end-to-end modeling pipeline (optional, pre-serialized artifact is included):
@@ -273,6 +277,8 @@ insurance-claim-risk-prediction/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml              # Automated CI/CD (Lint, Pytest, Docker Smoke Test)
+├── api/
+│   └── index.py                # Vercel serverless ASGI application entrypoint
 ├── data/
 │   └── car_insurance.csv       # 10,000 policyholder records
 ├── templates/
@@ -281,17 +287,16 @@ insurance-claim-risk-prediction/
 │   └── test_api.py             # 6 automated regression and integration test cases
 ├── .dockerignore               # Container build exclusion patterns
 ├── .gitignore                  # Git tracking rules (caches, virtualenvs, bytecode)
+├── .vercelignore               # Vercel deployment exclusion rules
 ├── app.py                      # Production FastAPI inference microservice
-├── api/                        # Vercel serverless deployment entrypoint & requirements
-│   ├── index.py
-│   └── requirements.txt
 ├── car_insurance_analysis.py   # Statistical audit, cross-validation & SHAP pipeline
 ├── Dockerfile                  # Hardened, non-privileged Python 3.12 container
 ├── docker-compose.yml          # Container orchestration configuration
 ├── LICENSE                     # MIT License
 ├── model_pipeline.joblib       # Serialized Scikit-Learn production artifact
 ├── pytest.ini                  # Pytest configuration settings
-├── requirements.txt            # Pinned dependency specifications
+├── requirements.txt            # Production microservice dependencies
+├── requirements-dev.txt        # Full development & training dependencies (XGBoost, SHAP)
 └── vercel.json                 # Vercel serverless function routing configuration
 ```
 

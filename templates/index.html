@@ -292,8 +292,12 @@
       amInput.disabled = missingAmCheck.checked;
     });
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    async function getPrediction() {
+      const submitBtn = document.getElementById('submit-btn');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Calculating Risk...';
+      }
 
       const payload = {
         age: parseInt(document.getElementById('age').value),
@@ -366,13 +370,24 @@
         }
 
       } catch (err) {
-        alert('Error fetching prediction: ' + err.message);
+        console.error('Prediction fetch error:', err);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Score Policy Risk';
+        }
       }
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      getPrediction();
+      return false;
     });
 
-    // Run initial trigger on page load
+    // Run initial calculation smoothly on page load
     window.addEventListener('DOMContentLoaded', () => {
-      form.dispatchEvent(new Event('submit'));
+      getPrediction();
     });
   </script>
 </body>

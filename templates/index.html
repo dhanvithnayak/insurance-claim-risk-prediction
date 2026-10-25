@@ -236,7 +236,7 @@
               <input type="number" id="duis" class="form-control" min="0" value="0" required>
             </div>
             <div class="form-group">
-              <label for="past_accidents">Past Accidents</label>
+              <label for="past_accidents">Past Accidents <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(Tenure confounded)</span></label>
               <input type="number" id="past_accidents" class="form-control" min="0" value="0" required>
             </div>
           </div>
@@ -268,6 +268,9 @@
             <p><strong>Model Engine:</strong> Calibrated L2 Logistic Regression</p>
             <p><strong>API Endpoint:</strong> <code>POST /predict</code></p>
             <p><strong>Swagger Docs:</strong> <a href="/docs" target="_blank" style="color: var(--primary);">Interactive API Spec</a></p>
+            <p style="margin-top: 0.5rem; font-size: 0.78rem; color: var(--text-muted); line-height: 1.35; border-top: 1px solid var(--card-border); padding-top: 0.4rem;">
+              <strong>Actuarial Note:</strong> Lifetime accident counts are unnormalized for driver tenure in this benchmark (Simpson's Paradox). See docs for full exposure analysis.
+            </p>
           </div>
         </div>
       </div>

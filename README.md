@@ -5,6 +5,8 @@
   <p>
     <i>Actuarially sound machine learning pipeline, containerized inference microservice, and interactive web dashboard for personal auto insurance risk assessment.</i>
     <br />
+    <a href="https://insurance-claim-risk-prediction-phi.vercel.app/"><strong>Explore Live Web Application & API ↗</strong></a>
+    &nbsp;•&nbsp;
     <a href="https://github.com/dhanvithnayak/insurance-claim-risk-prediction/issues">Request Feature / Report Bug</a>
   </p>
 </div>
@@ -147,7 +149,7 @@ Deploy instantly with zero configuration and no credit card required:
 1. Log in to [Vercel](https://vercel.com) using your GitHub account.
 2. Click **Add New...** -> **Project**, and select `insurance-claim-risk-prediction`.
 3. Click **Deploy**. Vercel will automatically detect `vercel.json` and `api/index.py`.
-4. Your interactive web dashboard and FastAPI REST endpoints will be live at `https://insurance-claim-risk-prediction.vercel.app`.
+4. Your interactive web dashboard and FastAPI REST endpoints will be live at [https://insurance-claim-risk-prediction-phi.vercel.app](https://insurance-claim-risk-prediction-phi.vercel.app).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -247,7 +249,17 @@ docker compose down
 
 3. **Postal Code Territory Audit:**
    - The dataset contains 4 discrete postal codes (10238, 21217, 32765, 92101). Storing postal codes as raw integers creates an erroneous continuous spatial topology.
-   - Categorical one-hot encoding isolates territorial risk. Notably, ZIP code `21217` exhibited a 100.0% claim rate ($N = 120$), receiving a high positive log-odds weight (+7.68) indicative of a localized risk cluster.
+   - Categorical one-hot encoding isolates territorial risk. Notably, ZIP code `21217` exhibited a 100.0% claim rate ($N = 120$), receiving a high positive log-odds weight (+7.68) indicative of a localized high-risk cluster.
+
+4. **Simpson's Paradox & Exposure Confounding (`past_accidents`):**
+   - In raw bivariate exploration, `past_accidents` appears counter-intuitively negatively associated with claims: applicants with 0 recorded accidents have an empirical claim rate of **46.97%**, whereas applicants with 5 past accidents have a claim rate of just **3.88%**.
+   - *Actuarial Root Cause:* Severe confounding by `driving_experience` ($r = +0.6047$) and `age` ($r = +0.4311$). Novice drivers (`0-9y` experience) file 62.80% of claims but have accumulated 0 lifetime accidents simply because they just received their licenses. Conversely, veteran drivers (`30y+`) have accumulated 3–5 minor accidents across lifetime exposure, yet have an annual claim frequency of only 1.90%.
+   - In multivariate modeling, raw lifetime accident counts retain a negative coefficient (`-0.1322`) because the data lacks exposure-time normalization (accidents per vehicle-year). Documenting this unnormalized exposure is a crucial actuarial audit insight.
+
+5. **Multicollinearity & Subsumed Predictors (`age` vs `driving_experience`):**
+   - In univariate analysis, `age` is strongly correlated with claims ($r = -0.4485$; 16–25 year-olds claim at 71.83% vs 65+ at 9.85%).
+   - In the multivariate model, `driving_experience` ($r = +0.7074$ with age) and `income` ($r = +0.6548$ with age) completely absorb this variance. Once driving tenure is controlled (e.g. 20–29 years), `age` receives a near-zero marginal coefficient (`+0.0019`), confirming that age acts strictly as an indirect proxy for experience and wealth in this risk pool.
+   - Similarly, `credit_score` is strongly collinear with income ($r = +0.68$) and car ownership ($r = +0.27$), yielding a modest marginal coefficient (`-0.0164`).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

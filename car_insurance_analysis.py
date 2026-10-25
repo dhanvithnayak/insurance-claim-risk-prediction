@@ -64,8 +64,8 @@ def audit_single_features(df: pd.DataFrame) -> tuple[str, float, float, pd.DataF
     Identifies dominant single predictor.
     """
     df_imputed = df.copy()
-    df_imputed["credit_score"].fillna(df_imputed["credit_score"].mean(), inplace=True)
-    df_imputed["annual_mileage"].fillna(df_imputed["annual_mileage"].mean(), inplace=True)
+    df_imputed["credit_score"] = df_imputed["credit_score"].fillna(df_imputed["credit_score"].mean())
+    df_imputed["annual_mileage"] = df_imputed["annual_mileage"].fillna(df_imputed["annual_mileage"].mean())
 
     features = [col for col in df_imputed.columns if col not in ["id", "outcome"]]
     models = []
